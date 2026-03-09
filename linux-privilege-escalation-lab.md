@@ -1,4 +1,4 @@
-# TryHackMe - Linux Privilege Escalation Lab
+# Linux Privilege Escalation Lab
 
 This lab focuses on privilege escalation techniques in Linux systems.
 
