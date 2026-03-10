@@ -1,0 +1,184 @@
+# SSRF Exploitation with Gopher Protocol (Library Web Application)
+
+## Overview
+
+This lab demonstrates the exploitation of a **Server-Side Request Forgery (SSRF)** vulnerability in a web application.
+
+The application allowed users to fetch remote resources but implemented partial filtering of certain protocols. By abusing the **gopher protocol**, it was possible to craft arbitrary network requests to internal services.
+
+The attack ultimately allowed interaction with internal services that were not exposed externally.
+
+---
+
+# 1. Initial Reconnaissance
+
+The target application provided functionality that allowed users to supply a URL for the server to retrieve content.
+
+Example input:
+
+```
+http://example.com
+```
+
+This indicated that the server was making requests on behalf of the user.
+
+This behavior suggested a possible **SSRF vulnerability**.
+
+---
+
+# 2. Testing SSRF
+
+Basic SSRF tests were performed.
+
+```
+http://127.0.0.1
+```
+
+The server responded with the internal page, confirming that **localhost access was possible**.
+
+Further attempts were made to read local files:
+
+```
+file:///etc/passwd
+```
+
+Response:
+
+```
+URL blocked due to keyword: file
+```
+
+Other protocols were also blocked:
+
+```
+ftp://
+```
+
+Response:
+
+```
+URL blocked due to keyword: ftp
+```
+
+This indicated that the application used **keyword-based filtering**.
+
+---
+
+# 3. Protocol Bypass
+
+Since common protocols were blocked, alternative schemes were tested.
+
+The **gopher protocol** was accepted:
+
+```
+gopher://
+```
+
+This protocol allows sending raw TCP payloads to services.
+
+This effectively turns the SSRF vulnerability into a **network proxy**.
+
+---
+
+# 4. Crafting Gopher Requests
+
+Using `gopher://`, it was possible to construct raw HTTP requests manually.
+
+Example payload structure:
+
+```
+gopher://TARGET:PORT/_RAW_REQUEST
+```
+
+Example request:
+
+```
+gopher://127.0.0.1:80/_GET%20/%20HTTP/1.1%0d%0aHost:%20127.0.0.1%0d%0a%0d%0a
+```
+
+Explanation:
+
+* `%20` → space
+* `%0d%0a` → CRLF (newline)
+
+This allowed sending fully custom HTTP requests from the server.
+
+---
+
+# 5. Internal Service Discovery
+
+Using the SSRF capability, internal services were probed.
+
+Examples:
+
+```
+http://127.0.0.1:8080
+http://127.0.0.1:5000
+http://127.0.0.1:3000
+```
+
+Some services responded, indicating that **internal infrastructure was accessible through SSRF**.
+
+---
+
+# 6. Abuse of Internal APIs
+
+Once internal endpoints were discovered, gopher payloads were used to craft requests to hidden API endpoints.
+
+Example request:
+
+```
+POST /internal/api HTTP/1.1
+Host: localhost
+Content-Length: 20
+
+username=admin
+```
+
+Encoded for gopher usage.
+
+This allowed interaction with internal services that were not publicly accessible.
+
+---
+
+# 7. Exploitation Result
+
+Through this technique it was possible to:
+
+* bypass protocol filtering
+* send arbitrary HTTP requests
+* interact with internal services
+* access sensitive functionality
+
+This ultimately led to the retrieval of the challenge flag.
+
+---
+
+# Security Issues Identified
+
+1. Server-Side Request Forgery (SSRF)
+2. Weak protocol filtering
+3. Internal services exposed to localhost
+4. Lack of network segmentation
+
+---
+
+# Mitigation Strategies
+
+To prevent similar attacks:
+
+* Restrict outbound requests from the server
+* Use strict URL validation
+* Block dangerous protocols (gopher, file, dict, etc.)
+* Implement network segmentation
+* Use allowlists instead of blocklists
+
+---
+
+# Skills Practiced
+
+* SSRF detection
+* protocol filtering bypass
+* gopher payload crafting
+* internal service enumeration
+* HTTP request smuggling through SSRF
