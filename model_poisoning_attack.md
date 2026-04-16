@@ -1,4 +1,4 @@
-AI Security Lab: Model Poisoning Attack
+#AI Security Lab: Model Poisoning Attack
 Overview
 
 This project demonstrates a Model Poisoning attack against a Large Language Model (LLM) system using a Retrieval-Augmented Generation (RAG) approach.
